@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+android {
+    namespace 'com.maple.dpinviewer'
+    compileSdk 37
+    defaultConfig {
+        applicationId 'com.maple.dpinviewer'
+        minSdk 33
+        targetSdk 36
+        versionCode 38
+        versionName '0.4.12'
+    }
+    signingConfigs {
+        debug {
+            storeFile rootProject.file('build-key.jks')
+            storePassword 'android'
+            keyAlias 'dpin-debug'
+            keyPassword 'android'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures { compose true }
+    buildTypes {
+        debug { minifyEnabled false }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+dependencies {
+    compileOnly project(':libxposed-stubs')
+    implementation 'androidx.activity:activity-compose:1.13.0'
+    implementation 'top.yukonga.miuix.kmp:miuix-ui-android:0.9.3'
+}
