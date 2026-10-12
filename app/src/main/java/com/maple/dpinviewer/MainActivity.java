@@ -51,11 +51,13 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     private SharedPreferences preferences;
     private LinearLayout root;
     private MiuixControls controls;
+    private PowerMonitor powerMonitor;
     private FrameLayout previewArea;
     private FrameLayout preview;
     private SurfaceView video;
     private AudioTrack volumeRegistration;
     private boolean appVolumeSupported, volumeRegistrationFailed;
+    private boolean activityStarted, powerSampling;
     private boolean bound, connected, desired, started, nativeMode, dpAttached, pendingIsland, windowFullscreen, smallWindowMode;
     private int inputWidth = 1920, inputHeight = 1080, generation;
 
@@ -101,6 +103,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
             if (desired) stopPreview();
             else startPreview();
         }, this::connect, color -> root.setBackgroundColor(color));
+        powerMonitor = new PowerMonitor(this, controls::setPower);
         root.addView(controls);
         preview = new FrameLayout(this);
         preview.setBackgroundColor(Color.BLACK);
@@ -219,6 +222,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     }
 
     private void updateControl() {
+        powerMonitor.state(connected, dpAttached, nativeMode);
         if (!desired || !connected || nativeMode) releaseVolumeRegistration();
         controls.setPreview(desired, connected && dpAttached && !nativeMode);
     }
@@ -369,6 +373,11 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
         send(Protocol.STOP, null);
         started = false;
     }
+    @Override protected void onStart() {
+        super.onStart();
+        activityStarted = true;
+        updatePowerSampling();
+    }
     @Override protected void onResume() { super.onResume(); publishSurface(); }
     @Override public void onMultiWindowModeChanged(boolean multiWindow, Configuration configuration) {
         super.onMultiWindowModeChanged(multiWindow, configuration);
@@ -380,6 +389,8 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     }
     @Override protected void onStop() {
         super.onStop();
+        activityStarted = false;
+        updatePowerSampling();
         releaseVolumeRegistration();
         if (!isInPictureInPictureMode()) { send(Protocol.STOP, null); started = false; }
     }
@@ -394,6 +405,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     @Override public void onPictureInPictureModeChanged(boolean pip, Configuration configuration) {
         super.onPictureInPictureModeChanged(pip, configuration);
         controls.setVisibility(pip || windowFullscreen ? View.GONE : View.VISIBLE);
+        updatePowerSampling();
         updatePreviewFrame();
         if (pip || windowFullscreen) root.setPadding(0, 0, 0, 0);
         root.requestApplyInsets();
@@ -401,6 +413,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     private void setWindowFullscreen(boolean fullscreen) {
         windowFullscreen = fullscreen;
         controls.setVisibility(fullscreen ? View.GONE : View.VISIBLE);
+        updatePowerSampling();
         updatePreviewFrame();
         WindowInsetsController insets = getWindow().getInsetsController();
         if (insets != null) {
@@ -417,6 +430,13 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
         }
         if (fullscreen) root.setPadding(0, 0, 0, 0);
         root.requestApplyInsets();
+    }
+    private void updatePowerSampling() {
+        boolean sample = activityStarted && !windowFullscreen && !isInPictureInPictureMode();
+        if (sample == powerSampling) return;
+        powerSampling = sample;
+        if (sample) powerMonitor.start();
+        else powerMonitor.stop();
     }
     private void updatePreviewFrame() {
         boolean fullscreen = windowFullscreen || isInPictureInPictureMode();

@@ -37,6 +37,7 @@ class MiuixControls(context: Context, onToggle: Runnable, onReconnect: Runnable,
     onBackgroundColor: IntConsumer) : FrameLayout(context) {
     private var statusText by mutableStateOf("正在连接米联…")
     private var signalText by mutableStateOf("输入参数：等待 DP 信号")
+    private var powerText by mutableStateOf("正在采样")
     private var statusError by mutableStateOf(false)
     private var previewDesired by mutableStateOf(false)
     private var previewEnabled by mutableStateOf(false)
@@ -61,7 +62,7 @@ class MiuixControls(context: Context, onToggle: Runnable, onReconnect: Runnable,
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(statusText, fontSize = 15.sp,
                                     color = if (statusError) Color(0xFFD34848) else MiuixTheme.colorScheme.onSurfaceContainer)
-                                Text(signalText, fontSize = 14.sp,
+                                Text("$signalText | 功率：$powerText", fontSize = 14.sp,
                                     color = MiuixTheme.colorScheme.onSurfaceContainer.copy(alpha = 0.65f))
                             }
                             Button(onClick = { onToggle.run() }, modifier = Modifier.widthIn(min = 120.dp),
@@ -85,6 +86,8 @@ class MiuixControls(context: Context, onToggle: Runnable, onReconnect: Runnable,
     }
 
     fun setSignal(text: String) { signalText = text }
+
+    fun setPower(text: String) { powerText = text }
 
     fun setPreview(desired: Boolean, enabled: Boolean) {
         previewDesired = desired
