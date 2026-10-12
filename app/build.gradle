@@ -11,8 +11,8 @@ android {
         applicationId 'com.maple.dpinviewer'
         minSdk 33
         targetSdk 36
-        versionCode 42
-        versionName '0.4.16'
+        versionCode 46
+        versionName '0.4.20'
     }
     signingConfigs {
         debug {

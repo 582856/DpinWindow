@@ -41,6 +41,7 @@ final class DpinBridge {
     private final Context context;
     private final ClassLoader loader;
     private final boolean updated;
+    private final AudioMixFix audioMixFix;
     private Messenger client;
     private IBinder.DeathRecipient deathRecipient;
     private Surface surface;
@@ -80,6 +81,7 @@ final class DpinBridge {
     DpinBridge(Context context, ClassLoader loader) throws Exception {
         this.context = context;
         this.loader = loader;
+        audioMixFix = new AudioMixFix(context);
         long version = context.getPackageManager().getPackageInfo(Protocol.TARGET, 0).getLongVersionCode();
         if (version != 180020201L && version != 180010202L)
             throw new IllegalStateException("Unsupported MiLink version: " + version);
@@ -439,9 +441,11 @@ final class DpinBridge {
     private void connectAudio() {
         if (audioConnected) return;
         try {
+            audioMixFix.start();
             // Native video starts audio data only after audioConnected has acquired focus.
             audioConnected = Boolean.TRUE.equals(call(audio, "a", new Class<?>[0]));
             if (!audioConnected) {
+                audioMixFix.stop();
                 audioStatus("音频焦点申请失败", true);
                 return;
             }
@@ -452,7 +456,10 @@ final class DpinBridge {
             worker.removeCallbacks(followAppVolume);
             worker.post(followAppVolume);
             audioStatus("音频已连接，等待视频流启动", false);
-        } catch (Exception error) { audioStatus("音频连接失败：" + rootMessage(error), true); }
+        } catch (Exception error) {
+            audioMixFix.stop();
+            audioStatus("音频连接失败：" + rootMessage(error), true);
+        }
     }
 
     private void syncVolume(int stream) throws Exception {
@@ -493,6 +500,8 @@ final class DpinBridge {
             if (audio != null && audioConnected) call(audio, "b", new Class<?>[0]);
         } catch (Exception error) { Log.e(TAG, "Audio cleanup failed", error); }
         audioConnected = false;
+        // Restore after native DP-off, so its 100ms mute cannot affect other media.
+        audioMixFix.stop();
         audioStatus("音频已停止", false);
     }
 

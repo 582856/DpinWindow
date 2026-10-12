@@ -143,6 +143,22 @@ public final class DpinModule extends XposedModule {
                 return chain.proceed();
             });
             bridge.installDiagnostics(this, loader);
+            Class<?> audioController = loader.loadClass(bridge.updatedVersion() ? "da.b" : "m7.b");
+            AtomicBoolean sharedAudio = new AtomicBoolean();
+            // The native state machine requires success, but preview must not interrupt other media.
+            hook(audioController.getDeclaredMethod("e")).intercept(chain -> {
+                if (bridge.ownsDp && !bridge.nativePro) {
+                    sharedAudio.set(true);
+                    Log.i(TAG, "preview audio: shared playback, no focus or call mode request");
+                    return true;
+                }
+                return chain.proceed();
+            });
+            // A preview request acquired neither focus nor a mode owner, so it has nothing to restore.
+            hook(audioController.getDeclaredMethod("b")).intercept(chain -> {
+                if (sharedAudio.getAndSet(false)) return null;
+                return chain.proceed();
+            });
             Class<?> audio = loader.loadClass(bridge.updatedVersion() ? "da.c" : "m7.c");
             hook(audio.getDeclaredMethod("c")).intercept(chain -> {
                 if (bridge.ownsDp && !bridge.nativePro && !bridge.active) return null;
