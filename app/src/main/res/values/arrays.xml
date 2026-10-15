@@ -1,1 +1,1 @@
-<resources><string-array name="xposed_scope"><item>com.milink.service</item></string-array></resources>
+<resources><string-array name="xposed_scope"><item>com.milink.service</item><item>com.miui.screenrecorder</item></string-array></resources>

@@ -10,10 +10,17 @@ import android.os.RemoteException;
 public final class AudioMixService extends Service {
     private AudioMixFix audio;
     private int milinkUid = -1;
+    private int recorderUid = -1;
     private final Binder binder = new Binder() {
         @Override protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
-            if (code != 1 && code != 2) return super.onTransact(code, data, reply, flags);
+            if (code != 1 && code != 2 && code != 3) return super.onTransact(code, data, reply, flags);
             data.enforceInterface(AudioMixFix.INTERFACE);
+            if (code == 3) {
+                if (Binder.getCallingUid() != recorderUid) throw new SecurityException("Recorder only");
+                reply.writeNoException();
+                reply.writeInt(audio.ready() ? 1 : 0);
+                return true;
+            }
             if (Binder.getCallingUid() != milinkUid) throw new SecurityException("MiLink only");
             long identity = Binder.clearCallingIdentity();
             try {
@@ -31,6 +38,8 @@ public final class AudioMixService extends Service {
         super.onCreate();
         audio = new AudioMixFix(this);
         try { milinkUid = getPackageManager().getApplicationInfo(Protocol.TARGET, 0).uid; }
+        catch (android.content.pm.PackageManager.NameNotFoundException ignored) { }
+        try { recorderUid = getPackageManager().getApplicationInfo(RecorderEchoHook.TARGET, 0).uid; }
         catch (android.content.pm.PackageManager.NameNotFoundException ignored) { }
     }
     @Override public IBinder onBind(Intent intent) { return binder; }

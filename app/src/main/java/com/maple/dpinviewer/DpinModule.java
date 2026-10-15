@@ -27,14 +27,18 @@ public final class DpinModule extends XposedModule {
     }
 
     @Override public void onPackageLoaded(XposedModuleInterface.PackageLoadedParam param) {
-        if (!Protocol.TARGET.equals(param.getPackageName()) || !Protocol.TARGET.equals(process)) return;
+        boolean recorder = RecorderEchoHook.TARGET.equals(param.getPackageName());
+        if ((!Protocol.TARGET.equals(param.getPackageName()) && !recorder)
+                || !(param.getPackageName().equals(process)
+                || (recorder && (RecorderEchoHook.TARGET + ":core").equals(process)))) return;
         try {
             Method attach = Application.class.getDeclaredMethod("attach", Context.class);
             hook(attach).setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE).intercept(chain -> {
                 Object result = chain.proceed();
                 if (INSTALLED.compareAndSet(false, true)) {
                     Context context = (Context) chain.getArg(0);
-                    install(context);
+                    if (recorder) RecorderEchoHook.install(this, context);
+                    else install(context);
                 }
                 return result;
             });

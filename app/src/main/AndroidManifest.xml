@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <queries><package android:name="com.milink.service" /><package android:name="org.lsposed.manager" /></queries>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <queries><package android:name="com.milink.service" /><package android:name="org.lsposed.manager" /><package android:name="com.miui.screenrecorder" /></queries>
     <application android:label="DP-in窗口显示" android:description="@string/module_description" android:allowBackup="false"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:icon="@mipmap/ic_dpin_window" android:roundIcon="@mipmap/ic_dpin_window" android:supportsRtl="true">

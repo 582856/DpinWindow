@@ -52,6 +52,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     private LinearLayout root;
     private MiuixControls controls;
     private PowerMonitor powerMonitor;
+    private ReleaseUpdateChecker releaseUpdates;
     private FrameLayout previewArea;
     private FrameLayout preview;
     private SurfaceView video;
@@ -158,6 +159,9 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
         page.setVerticalScrollBarEnabled(false);
         page.addView(root, new ScrollView.LayoutParams(-1, -2));
         setContentView(page);
+        MiuixUpdatePrompt updatePrompt = new MiuixUpdatePrompt(this);
+        addContentView(updatePrompt, new android.view.ViewGroup.LayoutParams(0, 0));
+        releaseUpdates = new ReleaseUpdateChecker(this, updatePrompt);
         if (smallWindowMode) setWindowFullscreen(true);
         getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, () -> {
             if (windowFullscreen) setWindowFullscreen(false);
@@ -187,6 +191,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (activityStarted) releaseUpdates.check();
         if (intent.getBooleanExtra("fromIsland", false)) {
             pendingIsland = true;
             startFromIsland();
@@ -376,6 +381,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     @Override protected void onStart() {
         super.onStart();
         activityStarted = true;
+        releaseUpdates.check();
         updatePowerSampling();
     }
     @Override protected void onResume() { super.onResume(); publishSurface(); }
@@ -390,6 +396,7 @@ public final class MainActivity extends ComponentActivity implements SurfaceHold
     @Override protected void onStop() {
         super.onStop();
         activityStarted = false;
+        releaseUpdates.cancel();
         updatePowerSampling();
         releaseVolumeRegistration();
         if (!isInPictureInPictureMode()) { send(Protocol.STOP, null); started = false; }
